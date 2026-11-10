@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Next-lot check</title>
+<!--
+  next-lot-signal dashboard template. Do not edit the layout.
+  Each run: copy this file next to the data as next-lot-dashboard.html and replace
+  only the JSON inside <script id="nls-data"> with the run's numbers
+  (format: references/dashboard.md). No network access; everything is in this file.
+-->
+<style>
+  :root {
+    --bg: #f3f6fa; --card: #ffffff; --ink: #13233a; --muted: #64748b; --line: #e5eaf1; --soft: #f6f8fb;
+    --hero1: #0f2f57; --hero2: #1b5584; --hero3: #2a7fa8;
+    --slow: #17a37a; --mid: #1f78c8; --fast: #ef7d22; --ring: #3fd3a3;
+    --tet: rgba(245, 166, 35, .14); --tetInk: #a86a08;
+    --shadow: 0 1px 2px rgba(16, 35, 58, .05), 0 6px 18px rgba(16, 35, 58, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d131a; --card: #161f29; --ink: #e7edf4; --muted: #93a3b5; --line: #263241; --soft: #1b2632;
+      --hero1: #0b2442; --hero2: #143f63; --hero3: #1d5f80;
+      --slow: #35c493; --mid: #4ea0ea; --fast: #f39a4f; --ring: #3fd3a3;
+      --tet: rgba(245, 166, 35, .12); --tetInk: #e7b25c;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d131a; --card: #161f29; --ink: #e7edf4; --muted: #93a3b5; --line: #263241; --soft: #1b2632;
+    --hero1: #0b2442; --hero2: #143f63; --hero3: #1d5f80;
+    --slow: #35c493; --mid: #4ea0ea; --fast: #f39a4f; --ring: #3fd3a3;
+    --tet: rgba(245, 166, 35, .12); --tetInk: #e7b25c;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 16px 36px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -.2px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .pill { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; color: var(--muted); font-size: 14px; box-shadow: var(--shadow); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; box-shadow: var(--shadow); min-width: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .row { display: grid; gap: 16px; margin-top: 16px; }
+
+  /* hero */
+  .hero { margin-top: 18px; border-radius: 20px; padding: 26px 28px; color: #fff;
+    background: linear-gradient(115deg, var(--hero1) 0%, var(--hero2) 55%, var(--hero3) 100%);
+    display: grid; grid-template-columns: 1.15fr 1.2fr .8fr; gap: 24px; align-items: center; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 1.4px; font-size: 12px; font-weight: 600; opacity: .85; }
+  .chip { display: inline-block; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: 13px; margin-top: 10px; }
+  .huge { font-size: 46px; font-weight: 700; line-height: 1.05; margin: 12px 0 6px; letter-spacing: -.5px; }
+  .huge.text { font-size: 30px; }
+  .why { opacity: .9; font-size: 14px; }
+  .kpis { display: flex; gap: 26px; margin-top: 18px; flex-wrap: wrap; }
+  .kpi b { display: block; font-size: 24px; line-height: 1.1; }
+  .kpi span { font-size: 12.5px; opacity: .8; }
+  .glass { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; padding: 12px 14px; }
+  .glass .t { font-size: 12.5px; opacity: .85; display: flex; justify-content: space-between; }
+  .ringwrap { text-align: center; }
+  .ringwrap .lbl { font-weight: 600; margin-top: 8px; }
+  .ringwrap .sm { font-size: 12.5px; opacity: .8; }
+
+  /* scenario cards */
+  .scen { grid-template-columns: repeat(3, 1fr); }
+  .sc { position: relative; overflow: hidden; padding-bottom: 0; }
+  .sc .head { display: flex; align-items: center; gap: 10px; }
+  .ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; }
+  .ico svg { width: 18px; height: 18px; }
+  .sc .name { font-weight: 600; color: var(--muted); }
+  .tag { margin-left: auto; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .sc .name { white-space: nowrap; }
+  #heroChart svg { height: 170px; }
+  .sc .val { font-size: 28px; font-weight: 700; margin: 12px 0 2px; letter-spacing: -.3px; }
+  .sc .val.text { font-size: 21px; }
+  .sc .meta { color: var(--muted); font-size: 13.5px; min-height: 40px; }
+  .sc .spark { margin: 8px -20px 0; height: 64px; }
+  .sc.drives { border-width: 2px; }
+
+  /* main chart + timeline */
+  .mainrow { grid-template-columns: 2fr 1fr; }
+  .stats { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 8px; }
+  .stats div span { display: block; font-size: 12.5px; color: var(--muted); }
+  .stats div b { font-size: 20px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .chhead { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .tl li:last-child { border-bottom: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: var(--muted); }
+  .tl .when { font-weight: 600; white-space: nowrap; }
+  .tl .what { font-size: 14px; }
+  .tl .what small { display: block; color: var(--muted); font-size: 12.5px; }
+  .tl li.key .what { font-weight: 600; }
+
+  /* report, table, small cards */
+  .quote { margin: 0; padding: 12px 16px; border-left: 4px solid var(--mid); background: var(--soft); border-radius: 0 10px 10px 0; }
+  .tbl { overflow-x: auto; margin: 0 -20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 760px; }
+  th { text-transform: uppercase; letter-spacing: .6px; font-size: 11.5px; color: var(--muted); background: var(--soft); font-weight: 600; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th:first-child, td:first-child { padding-left: 20px; }
+  td .sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; }
+  tr.drives td { font-weight: 600; }
+  .two { grid-template-columns: 1fr 1fr; }
+  ul.plain { margin: 0; padding-left: 18px; }
+  ul.plain li { margin: 3px 0; }
+  .muted { color: var(--muted); }
+  footer { margin-top: 20px; font-size: 12.5px; color: var(--muted); text-align: center; }
+  .noscript { margin-top: 14px; padding: 12px 16px; border: 1px solid var(--line); border-left: 4px solid var(--mid); border-radius: 10px; background: var(--card); font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  /* interaction: legend toggles, chart hover, highlight */
+  .legend button { font: inherit; color: inherit; background: none; border: 1px solid transparent; border-radius: 8px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .legend button:hover, .legend button:focus-visible { border-color: var(--line); }
+  .legend button[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+  .chartwrap { position: relative; }
+  .chartwrap svg.chart { touch-action: pan-y; cursor: crosshair; }
+  .tip { position: absolute; top: 8px; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 6px 18px rgba(16, 35, 58, .14); white-space: nowrap; z-index: 2; }
+  .tip b { display: block; margin-bottom: 3px; }
+  .tip div { display: flex; align-items: center; gap: 6px; }
+  .tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: -2px 0 8px; }
+  .sc.pick { cursor: pointer; }
+  .sc.pick:focus-visible, .tl li.pick:focus-visible { outline: 2px solid var(--mid); outline-offset: 2px; }
+  .sc .head { flex-wrap: wrap; row-gap: 6px; }
+  .sc.pick:hover { background: color-mix(in srgb, var(--soft) 60%, var(--card)); }
+  .sc.on { background: var(--soft); }
+  .tl li.pick { cursor: pointer; border-radius: 8px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; transition: background .12s; }
+  .tl li.pick:hover { background: var(--soft); }
+  .tl li.on { background: color-mix(in srgb, var(--mid) 14%, transparent); box-shadow: inset 3px 0 0 var(--mid); }
+  .tl li.on .what::after { content: "Marked on the chart · click again to clear"; display: block; font-size: 12px; font-weight: 600; color: var(--mid); margin-top: 2px; }
+  .theme { font: inherit; font-size: 13.5px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow); }
+  .theme:hover { border-color: var(--mid); }
+  .topr { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ask Claude */
+  .ask .lead { color: var(--muted); font-size: 13.5px; margin: -4px 0 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .chips button { font: inherit; font-size: 13.5px; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; text-align: left; }
+  .chips button:hover:not(:disabled) { border-color: var(--mid); }
+  .log { display: grid; gap: 10px; margin-bottom: 12px; }
+  .msg { padding: 10px 14px; border-radius: 12px; font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.q { justify-self: end; max-width: 85%; background: color-mix(in srgb, var(--mid) 14%, transparent); }
+  .msg.a { background: var(--soft); border: 1px solid var(--line); }
+  .msg.a.wait { color: var(--muted); }
+  .askform { display: flex; gap: 8px; align-items: flex-end; }
+  .askform textarea { flex: 1; min-width: 0; font: inherit; font-size: 14.5px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; resize: vertical; }
+  .askform button { font: inherit; font-weight: 600; border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--mid); background: var(--mid); color: #fff; }
+  .askform button.ghost { background: none; color: var(--ink); border-color: var(--line); }
+  .askform button:disabled, .chips button:disabled { opacity: .5; cursor: default; }
+
+  @media (max-width: 980px) {
+    .hero { grid-template-columns: 1fr 1fr; }
+    .hero .glass { grid-column: 1 / -1; order: 3; }
+    .mainrow { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    .hero { grid-template-columns: 1fr; padding: 22px 18px; }
+    .huge { font-size: 38px; }
+    .scen, .two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div>
+      <h1 id="title">Next-lot check</h1>
+      <div class="sub">When to decide the next production lot · weekly check</div>
+    </div>
+    <div class="topr">
+      <div class="pill" id="asof">—</div>
+      <button type="button" class="theme" id="themeBtn" hidden></button>
+    </div>
+  </div>
+
+  <div class="noscript" id="noscript"><b>Seeing only dashes?</b> This viewer is not running the page's script, so the numbers and charts cannot be drawn. Open this file in a web browser (double-click it) to see the dashboard.</div>
+
+  <section class="hero">
+    <div>
+      <div class="eyebrow" id="heroEyebrow">Decide the next lot by</div>
+      <div class="huge" id="heroBig">—</div>
+      <div class="why" id="heroWhy"></div>
+      <span class="chip" id="status">—</span>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="glass" id="heroChartBox">
+      <div class="t"><span id="heroChartTitle">Projected stock</span><span id="heroChartNote"></span></div>
+      <div id="heroChart"></div>
+    </div>
+    <div class="ringwrap" id="ringBox"></div>
+  </section>
+
+  <div class="row scen" id="scenCards"></div>
+
+  <div class="row mainrow">
+    <section class="card" id="chartCard">
+      <div class="chhead">
+        <h2>Projected stock if no new lot is ordered</h2>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="hint" id="hint">Point at the chart to read a day. Click a scenario name to hide or show it, a scenario card to highlight it, or a key date to mark it.</div>
+      <div class="chartwrap" id="chartWrap"><div id="chart"></div><div class="tip" id="tip" hidden></div></div>
+      <div class="note" id="chartNote"></div>
+    </section>
+    <section class="card">
+      <h2>Key dates</h2>
+      <ul class="tl" id="timeline"></ul>
+    </section>
+  </div>
+
+  <div class="row">
+    <section class="card">
+      <h2>This week's report line</h2>
+      <p class="quote" id="report">—</p>
+    </section>
+  </div>
+
+  <div class="row" id="askRow" hidden>
+    <section class="card ask">
+      <h2>Ask Claude about this week's check</h2>
+      <p class="lead">Claude explains the numbers on this page. It does not work out new dates: to test a different number, run the skill again. Each question uses your own Claude usage.</p>
+      <div class="chips" id="askChips"></div>
+      <div class="log" id="askLog" aria-live="polite"></div>
+      <form class="askform" id="askForm">
+        <textarea id="askBox" rows="2" placeholder="Ask about this week's numbers"></textarea>
+        <button type="submit" id="askBtn">Ask</button>
+        <button type="button" class="ghost" id="stopBtn" hidden>Stop</button>
+      </form>
+      <div class="note" id="askNote"></div>
+    </section>
+  </div>
+
+  <div class="row">
+    <section class="card">
+      <h2>Scenario details</h2>
+      <div class="tbl"><table id="scen"></table></div>
+    </section>
+  </div>
+
+  <div class="row two">
+    <section class="card"><h2>Inbound lots</h2><div id="inbound"></div></section>
+    <section class="card"><h2>Data age and notes</h2><div id="age"></div></section>
+  </div>
+
+  <footer id="foot"></footer>
+</main>
+
+<script id="nls-data" type="application/json">
+null
+</script>
+
+<script>
+(function () {
+  document.getElementById("noscript").style.display = "none";
+  var D = JSON.parse(document.getElementById("nls-data").textContent || "null");
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    for (var k in attrs || {}) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function sv(parent, tag, a, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in a || {}) e.setAttribute(k, a[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function pd(s) { if (!s) return null; var p = String(s).split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+  function fd(s) { var d = pd(s); return d ? d.getUTCDate() + "/" + (d.getUTCMonth() + 1) + "/" + d.getUTCFullYear() : "—"; }
+  function dd(a, b) { return Math.round((pd(b) - pd(a)) / 864e5); }
+  function v(x) { return x == null || x === "" ? "—" : String(x); }
+  function num(x) { return x == null ? "—" : Math.round(x).toLocaleString("en-US"); }
+  var NAMES = ["slow", "mid", "fast"];
+  var DASH = { slow: "6 4", mid: "", fast: "2 3" };
+  var ICON = {
+    slow: "M4 15l5-5 4 4 7-7",          // gentle trend
+    mid: "M4 12h16M14 6l6 6-6 6",       // steady
+    fast: "M4 18L20 6M12 6h8v8"         // steep
+  };
+
+  $("foot").textContent = "Illustrative, based on the data you entered. The agent prepares the decision; a person decides.";
+
+  // Light / dark switch: follows the system until the viewer picks one (remembered in this browser only).
+  (function () {
+    var root = document.documentElement, btn = $("themeBtn"), mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+    try { var saved = localStorage.getItem("nls-theme"); if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved); } catch (e) {}
+    function current() { return root.getAttribute("data-theme") || (mq && mq.matches ? "dark" : "light"); }
+    function label() { btn.textContent = current() === "dark" ? "☀ Light" : "☾ Dark"; btn.setAttribute("aria-label", "Switch to " + (current() === "dark" ? "light" : "dark") + " background"); }
+    btn.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("nls-theme", next); } catch (e) {}
+      label();
+    });
+    if (mq && mq.addEventListener) mq.addEventListener("change", label);
+    label(); btn.hidden = false;
+  })();
+
+  if (!D) {
+    $("status").textContent = "Empty template";
+    $("heroEyebrow").textContent = "Dashboard template";
+    $("heroBig").textContent = "No data yet";
+    $("heroBig").className = "huge text";
+    $("heroWhy").textContent = "This is the dashboard template. The agent fills it with each run's numbers.";
+    ["heroChartBox", "chartCard"].forEach(function (id) { $(id).style.display = "none"; });
+    return;
+  }
+
+  var S = D.settings || {};
+  var SC = {}; (D.scenarios || []).forEach(function (s) { SC[s.name] = s; });
+  var main = D.status_scenario && SC[D.status_scenario] ? D.status_scenario : "mid";
+  var drives = function (k) { return !!D.status_scenario && k === D.status_scenario; };
+  function days(n) { return n + (n === 1 ? " day" : " days"); }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
+  function flagText(f) { return { "in source data": "decided lot, now listed in the inbound data", "no date": "no arrival date yet", "overdue": "overdue" }[f] || "already ordered"; }
+  function addDays(s, k) { var d = pd(s); d.setUTCDate(d.getUTCDate() + k); return d.toISOString().slice(0, 10); }
+  var sm = SC[main] || {};
+  var allZero = (D.scenarios || []).length && (D.scenarios || []).every(function (s) { return s.units_needed === 0; });
+  // Past deadline while the factory is closed for Tet: any order until full capacity arrives on the same day
+  var sameArrival = D.status === "Past deadline" && !D.driving_deadline && S.tet_last_order_date && S.tet_full_capacity_date &&
+    pd(D.as_of) > pd(S.tet_last_order_date) && pd(D.as_of) < pd(S.tet_full_capacity_date) ? S.tet_full_capacity_date : null;
+  if (D.title) { $("title").textContent = D.title; document.title = D.title; }
+  $("asof").textContent = "Data as of " + fd(D.as_of) + " · illustrative, based on the data you entered";
+
+  // ---------- hero ----------
+  $("status").textContent = v(D.status);
+  if (D.ask_ceo) {
+    var ac = el("span", { "class": "chip", style: "margin-left:8px" }, "Note to the CEO attached");
+    $("status").parentNode.insertBefore(ac, $("status").nextSibling);
+  }
+  if (D.driving_deadline) {
+    $("heroBig").textContent = fd(D.driving_deadline);
+    $("heroWhy").textContent = (D.status_scenario ? D.status_scenario.charAt(0).toUpperCase() + D.status_scenario.slice(1) + " scenario" : "") +
+      (D.driver_reason ? " · " + D.driver_reason : "");
+  } else {
+    $("heroEyebrow").textContent = sm.unavoidable_shortage_days && !sm.stockout_date ? "Short before the next inbound lot, then" : "This week";
+    $("heroBig").textContent = v(D.status);
+    $("heroBig").className = "huge text";
+    $("status").style.display = "none";
+    if (D.ask_ceo) $("status").nextSibling.style.marginLeft = "0";
+    var w = [];
+    if (D.missing && D.missing.length) w.push("Missing: " + D.missing.join(", "));
+    if (sm.unavoidable_shortage_days && !sm.stockout_date && sm.first_shortage_date)
+      w.push("Short from " + fd(sm.first_shortage_date) + " to " + fd(addDays(sm.first_shortage_date, sm.unavoidable_shortage_days - 1)) +
+        ", which no order can prevent; no further stock-out before " + fd(S.next_peak_start));
+    else if (D.driver_reason) w.push(D.driver_reason.charAt(0).toUpperCase() + D.driver_reason.slice(1));
+    if (sm.order_now_arrival) w.push("Ordering now arrives " + fd(sm.order_now_arrival));
+    if (sameArrival) w.push("Ordering any day until " + fd(sameArrival) + " arrives the same day");
+    $("heroWhy").textContent = w.join(" · ");
+  }
+  var kp = [];
+  if (sm.unavoidable_shortage_days) kp.push([sm.unavoidable_shortage_days, (sm.unavoidable_shortage_days === 1 ? "day" : "days") + " short that no order can prevent"]);
+  var overdue = (D.inbound || []).filter(function (x) { return x.flag === "overdue"; });
+  var staleStock = (D.data_age || []).some(function (x) { return x.stale && /stock/i.test(x.input); });
+  var stockLbl = "units in stock" + (overdue.length ? " (incl. " + num(overdue.reduce(function (a, x) { return a + (x.qty || 0); }, 0)) + " overdue, unconfirmed)" : "") + (staleStock ? " · stale count" : "");
+  if (D.stock_now != null) kp.push([num(D.stock_now), stockLbl]);
+  if (D.queue_now != null) kp.push([num(D.queue_now), "orders waiting"]);
+  if (S.buffer_days != null && D.status !== "Past deadline") kp.push([S.buffer_days, "day buffer target"]);
+  kp.slice(0, 3).forEach(function (k) {
+    var d = el("div", { "class": "kpi" }); d.appendChild(el("b", {}, String(k[0]))); d.appendChild(el("span", {}, k[1])); $("kpis").appendChild(d);
+  });
+
+  // ring: where the driving deadline sits against the 43-day "Time left" mark
+  (function () {
+    var box = $("ringBox"), size = 150, r = 60, c = 2 * Math.PI * r;
+    var s = sv(null, "svg", { viewBox: "0 0 " + size + " " + size, width: size, height: size });
+    sv(s, "circle", { cx: 75, cy: 75, r: r, fill: "none", stroke: "rgba(255,255,255,.16)", "stroke-width": 12 });
+    var frac, big, small1, small2;
+    if (D.days_left != null) {
+      frac = Math.max(0, Math.min(1, D.days_left / 43));
+      big = String(D.days_left); small1 = D.days_left === 1 ? "day left" : "days left";
+      small2 = D.status === "In decision window" ? "Inside the decision window"
+        : D.days_left > 14 ? "Decision window opens in " + days(D.days_left - 14) : "Decision window is open";
+    } else if (D.status === "Enough stock until next peak") {
+      var other = (D.scenarios || []).filter(function (s) { return s.full_buffer_deadline; })
+        .sort(function (a, b) { return pd(a.full_buffer_deadline) - pd(b.full_buffer_deadline); })[0];
+      if (sm.unavoidable_shortage_days) { frac = 0; big = String(sm.unavoidable_shortage_days); small1 = (sm.unavoidable_shortage_days === 1 ? "day" : "days") + " short first"; }
+      else { frac = 1; big = "OK"; small1 = "until next peak"; }
+      small2 = other ? cap(other.name) + " scenario: decide by " + fd(other.full_buffer_deadline) + " (does not drive the status)"
+        : "No deadline before " + fd(S.next_peak_start);
+    } else if (D.status === "Past deadline") {
+      frac = 0; big = "Past"; small1 = "full-buffer date"; small2 = "The full-buffer date has passed";
+    } else {
+      frac = 0; big = "—"; small1 = "no date yet"; small2 = "Fill in the missing data";
+    }
+    if (frac > 0) sv(s, "circle", { cx: 75, cy: 75, r: r, fill: "none", stroke: "var(--ring)", "stroke-width": 12, "stroke-linecap": "round",
+      "stroke-dasharray": (c * frac).toFixed(1) + " " + c.toFixed(1), transform: "rotate(-90 75 75)" });
+    sv(s, "text", { x: 75, y: 78, "text-anchor": "middle", "font-size": big.length > 3 ? 26 : 34, "font-weight": 700, fill: "#fff" }, big);
+    sv(s, "text", { x: 75, y: 100, "text-anchor": "middle", "font-size": 12, fill: "rgba(255,255,255,.8)" }, small1);
+    box.appendChild(s);
+    box.appendChild(el("div", { "class": "lbl" }, small2));
+    box.appendChild(el("div", { "class": "sm" }, "Thresholds: 43+ time left · 15–42 approaching · 0–14 decide"));
+  })();
+
+  // ---------- chart helpers ----------
+  var sr = D.series, net = {}, n = 0;
+  if (sr && sr.start && sr.stock) {
+    NAMES.forEach(function (k) {
+      var st = sr.stock[k] || [], q = (sr.queue && sr.queue[k]) || [];
+      net[k] = st.map(function (s, i) { return s - (q[i] || 0); });
+      n = Math.max(n, net[k].length);
+    });
+  }
+  function day(s) { return dd(sr.start, s); }
+  function drawChart(host, o) {
+    var W = o.W, H = o.H, L = o.L, R = o.R, T = o.T, B = o.B, keys = o.keys;
+    var lo = 0, hi = 0;
+    (o.scaleKeys || keys).forEach(function (k) { (net[k] || []).forEach(function (x) { if (x > hi) hi = x; if (x < lo) lo = x; }); });
+    var span = (hi - lo) || 1; hi += span * 0.08; if (lo < 0) lo -= span * 0.08;
+    function X(i) { return L + (W - L - R) * (n <= 1 ? 0 : i / (n - 1)); }
+    function Y(y) { return T + (H - T - B) * (hi - y) / (hi - lo); }
+    var s = sv(null, "svg", { viewBox: "0 0 " + W + " " + H, "class": "chart", preserveAspectRatio: o.stretch ? "none" : "xMidYMid meet" });
+    if (o.aria) s.setAttribute("aria-label", o.aria);
+    var defs = sv(s, "defs");
+    keys.forEach(function (k) {
+      var g = sv(defs, "linearGradient", { id: o.id + k, x1: 0, x2: 0, y1: 0, y2: 1 });
+      sv(g, "stop", { offset: "0%", "stop-color": o.areaColor || "var(--" + k + ")", "stop-opacity": o.areaOpacity || .22 });
+      sv(g, "stop", { offset: "100%", "stop-color": o.areaColor || "var(--" + k + ")", "stop-opacity": 0 });
+    });
+    if (o.tet && S.tet_last_order_date && S.tet_full_capacity_date) {
+      var a = Math.max(0, day(S.tet_last_order_date) + 1), b = Math.min(n - 1, day(S.tet_full_capacity_date) - 1);
+      if (b > 0 && a < n - 1 && b >= a) {
+        sv(s, "rect", { x: X(a), y: T, width: Math.max(2, X(b) - X(a)), height: H - T - B, fill: "var(--tet)", rx: 4 });
+        if (o.labels) sv(s, "text", { x: X(a) + 6, y: T + 14, "font-size": 11.5, fill: "var(--tetInk)", "font-weight": 600 }, "Tết: new orders wait for the factory");
+      }
+    }
+    if (o.grid) {
+      var step = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4 || 1)));
+      while ((hi - lo) / step > 6) step *= 2;
+      for (var g2 = Math.ceil(lo / step) * step; g2 <= hi; g2 += step) {
+        sv(s, "line", { x1: L, x2: W - R, y1: Y(g2), y2: Y(g2), stroke: "var(--line)", "stroke-width": g2 === 0 ? 1.5 : 1, "stroke-dasharray": g2 === 0 ? "" : "3 4" });
+        sv(s, "text", { x: L - 8, y: Y(g2) + 4, "text-anchor": "end", "font-size": 11.5, fill: "var(--muted)" }, num(g2));
+      }
+      var start = pd(sr.start), d0 = new Date(start); d0.setUTCDate(1); d0.setUTCMonth(d0.getUTCMonth() + 1);
+      var mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], every = n > 400 ? 2 : 1, cnt = 0;
+      while ((d0 - start) / 864e5 < n) {
+        var i0 = Math.round((d0 - start) / 864e5);
+        if (cnt++ % every === 0) sv(s, "text", { x: X(i0), y: H - B + 18, "text-anchor": "middle", "font-size": 11.5, fill: "var(--muted)" },
+          mon[d0.getUTCMonth()] + (d0.getUTCMonth() === 0 ? " " + String(d0.getUTCFullYear()).slice(2) : ""));
+        d0.setUTCMonth(d0.getUTCMonth() + 1);
+      }
+    }
+    keys.forEach(function (k) {
+      var arr = net[k] || []; if (!arr.length) return;
+      var line = arr.map(function (y, i) { return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(y).toFixed(1); }).join(" ");
+      if (o.area) sv(s, "path", { d: line + " L" + X(arr.length - 1).toFixed(1) + " " + Y(Math.max(lo, 0)).toFixed(1) + " L" + X(0).toFixed(1) + " " + Y(Math.max(lo, 0)).toFixed(1) + " Z", fill: "url(#" + o.id + k + ")" });
+      sv(s, "path", { d: line, fill: "none", stroke: o.lineColor || "var(--" + k + ")", "stroke-width": o.width ? o.width(k) : 2, "stroke-dasharray": o.dashed ? DASH[k] : "", "stroke-linejoin": "round", "vector-effect": "non-scaling-stroke", opacity: o.alpha ? o.alpha(k) : 1 });
+    });
+    if (o.mark) {
+      var mi = day(o.mark.date);
+      if (mi >= 0 && mi <= n - 1) {
+        sv(s, "line", { x1: X(mi), x2: X(mi), y1: T, y2: H - B, stroke: "var(--muted)", "stroke-width": 1.5 });
+        var ml = fd(o.mark.date) + ": " + o.mark.label, mr = mi > n * 0.6;
+        if (ml.length > 46) ml = ml.slice(0, 45) + "…";
+        var mw = ml.length * 6.4 + 14, mx = mr ? X(mi) - mw - 4 : X(mi) + 4;
+        sv(s, "rect", { x: mx, y: H - B - 30, width: mw, height: 20, rx: 10, fill: "var(--card)", stroke: "var(--muted)" });
+        sv(s, "text", { x: mx + mw / 2, y: H - B - 16, "text-anchor": "middle", "font-size": 11.5, fill: "var(--ink)" }, ml);
+      }
+    }
+    if (o.deadline && D.driving_deadline) {
+      var di = day(D.driving_deadline);
+      if (di >= 0 && di <= n - 1) {
+        sv(s, "line", { x1: X(di), x2: X(di), y1: T, y2: H - B, stroke: o.lineColor || "var(--ink)", "stroke-width": 1.2, "stroke-dasharray": "4 3" });
+        if (o.labels) {
+          var lab = "Decide by " + fd(D.driving_deadline), right = di > n * 0.7;
+          var tw = lab.length * 6.6 + 14, tx = right ? X(di) - tw - 4 : X(di) + 4;
+          sv(s, "rect", { x: tx, y: T + 22, width: tw, height: 20, rx: 10, fill: "var(--ink)" });
+          sv(s, "text", { x: tx + tw / 2, y: T + 36, "text-anchor": "middle", "font-size": 11.5, fill: "var(--card)", "font-weight": 600 }, lab);
+        }
+      }
+    }
+    if (o.dots) (D.scenarios || []).forEach(function (sc) {
+      var sd = sc.first_shortage_date || sc.stockout_date;
+      if (!sd || keys.indexOf(sc.name) < 0) return;
+      var i = day(sd); if (i < 0 || i > n - 1) return;
+      sv(s, "circle", { cx: X(i), cy: Y(net[sc.name] ? net[sc.name][i] || 0 : 0), r: o.dotR || 5, fill: o.dotFill || "var(--card)", stroke: o.lineColor || "var(--" + sc.name + ")", "stroke-width": 2.5, opacity: o.alpha ? o.alpha(sc.name) : 1 });
+    });
+    host.appendChild(s);
+    return { svg: s, X: X, Y: Y, W: W, L: L, R: R, T: T, B: B, H: H, keys: keys };
+  }
+
+  // ---------- main chart: shown scenarios, highlight, marked date, hover ----------
+  var view = { shown: { slow: true, mid: true, fast: true }, focus: null, mark: null };
+  var cardEls = {}, rowEls = {}, tlEls = [];
+  function renderMain() {
+    var host = $("chart"); host.textContent = "";
+    var keys = NAMES.filter(function (k) { return view.shown[k]; });
+    var c = drawChart(host, { id: "m", W: 760, H: 330, L: 52, R: 12, T: 12, B: 30, keys: keys, scaleKeys: NAMES, grid: true, tet: true, labels: true, deadline: true, dots: true, dashed: false,
+      width: function (k) { return view.focus ? (k === view.focus ? 3.5 : 1.5) : (k === main ? 3 : 2); },
+      alpha: function (k) { return view.focus && k !== view.focus ? 0.3 : 1; },
+      mark: view.mark, aria: "Projected stock per scenario by day" });
+    attachHover(c);
+    NAMES.forEach(function (k) {
+      if (cardEls[k]) { cardEls[k].classList.toggle("on", view.focus === k); cardEls[k].setAttribute("aria-pressed", view.focus === k ? "true" : "false"); }
+      if (rowEls[k]) rowEls[k].style.background = view.focus === k ? "color-mix(in srgb, var(--" + k + ") 12%, transparent)" : "";
+    });
+    tlEls.forEach(function (t) { t.li.classList.toggle("on", !!view.mark && view.mark.date === t.date && view.mark.label === t.label); });
+  }
+  function attachHover(c) {
+    var s = c.svg, tip = $("tip"), wrap = $("chartWrap");
+    var guide = sv(s, "line", { y1: c.T, y2: c.H - c.B, stroke: "var(--muted)", "stroke-width": 1, "stroke-dasharray": "3 3", visibility: "hidden" });
+    var dots = {};
+    c.keys.forEach(function (k) { dots[k] = sv(s, "circle", { r: 4.5, fill: "var(--card)", stroke: "var(--" + k + ")", "stroke-width": 2.5, visibility: "hidden" }); });
+    function show(ev) {
+      var r = s.getBoundingClientRect(); if (!r.width) return;
+      var vx = (ev.clientX - r.left) / r.width * c.W;
+      var i = Math.round((vx - c.L) / (c.W - c.L - c.R) * (n - 1));
+      if (i < 0 || i > n - 1) { hide(); return; }
+      guide.setAttribute("x1", c.X(i)); guide.setAttribute("x2", c.X(i)); guide.setAttribute("visibility", "visible");
+      tip.textContent = "";
+      tip.appendChild(el("b", {}, fd(addDays(sr.start, i))));
+      c.keys.forEach(function (k) {
+        var y = net[k] && net[k][i]; if (y == null) return;
+        dots[k].setAttribute("cx", c.X(i)); dots[k].setAttribute("cy", c.Y(y)); dots[k].setAttribute("visibility", "visible");
+        var stock = (sr.stock[k] || [])[i], q = ((sr.queue || {})[k] || [])[i] || 0;
+        var row = el("div"); row.appendChild(el("i", { style: "background:var(--" + k + ")" }));
+        row.appendChild(document.createTextNode(cap(k) + ": " + num(stock) + " in stock" + (q >= 0.5 ? ", " + num(q) + " orders waiting" : "")));
+        tip.appendChild(row);
+      });
+      tip.hidden = false;
+      var wr = wrap.getBoundingClientRect(), px = ev.clientX - wr.left;
+      var left = px + 14; if (left + tip.offsetWidth > wr.width) left = Math.max(0, px - tip.offsetWidth - 14);
+      tip.style.left = left + "px";
+    }
+    function hide() { tip.hidden = true; guide.setAttribute("visibility", "hidden"); c.keys.forEach(function (k) { dots[k].setAttribute("visibility", "hidden"); }); }
+    s.addEventListener("pointermove", show);
+    s.addEventListener("pointerdown", show);
+    s.addEventListener("pointerleave", hide);
+  }
+  function pickable(node, fn) {
+    node.classList.add("pick"); node.setAttribute("tabindex", "0"); node.setAttribute("role", "button");
+    node.addEventListener("click", fn);
+    node.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } });
+  }
+
+  if (n) {
+    drawChart($("heroChart"), { id: "h", stretch: true, W: 420, H: 170, L: 4, R: 8, T: 10, B: 8, keys: [main], area: true, areaColor: "#ffffff", areaOpacity: .28,
+      lineColor: "#ffffff", width: function () { return 2.5; }, deadline: true, dots: true, dotFill: "var(--hero2)", dotR: 5 });
+    $("heroChartTitle").textContent = "Stock if no new lot (" + main + " scenario)";
+    $("heroChartNote").textContent = "to " + fd(S.next_peak_start);
+    renderMain();
+    $("chartNote").textContent = "From " + fd(sr.start) + " to " + fd(S.next_peak_start) + " (next peak). Line = stock minus waiting orders at the end of each day; below 0 means orders are waiting. Circles mark the first day orders go unfilled.";
+  } else {
+    $("heroChartBox").style.display = "none";
+    $("chartCard").style.display = "none";
+  }
+  NAMES.forEach(function (k) {
+    var sp = el("button", { type: "button", "aria-pressed": "true" }); sp.appendChild(el("i", { style: "background:var(--" + k + ")" }));
+    sp.appendChild(document.createTextNode(k.charAt(0).toUpperCase() + k.slice(1) + (drives(k) ? " (drives the status)" : "")));
+    sp.addEventListener("click", function () {
+      var on = NAMES.filter(function (x) { return view.shown[x]; });
+      if (view.shown[k] && on.length === 1) return; // keep at least one line
+      view.shown[k] = !view.shown[k];
+      if (!view.shown[k] && view.focus === k) view.focus = null;
+      sp.setAttribute("aria-pressed", view.shown[k] ? "true" : "false");
+      renderMain();
+    });
+    $("legend").appendChild(sp);
+  });
+  function showScenario(k) {
+    if (!view.shown[k]) { view.shown[k] = true; $("legend").children[NAMES.indexOf(k)].setAttribute("aria-pressed", "true"); }
+  }
+  var st = [];
+  if (D.stock_now != null) st.push(["Stock now", num(D.stock_now)]);
+  if (D.queue_now != null) st.push(["Orders waiting", num(D.queue_now)]);
+  if (S.factory_days != null) st.push(["Lead time", (S.factory_days + (S.transit_days || 0)) + " days"]);
+  if (S.moq != null) st.push(["MOQ", num(S.moq)]);
+  st.forEach(function (x) { var d = el("div"); d.appendChild(el("span", {}, x[0])); d.appendChild(el("b", {}, x[1])); $("stats").appendChild(d); });
+
+  // ---------- scenario cards ----------
+  if (D.status === "Not enough data") $("scenCards").style.display = "none";
+  NAMES.forEach(function (k) {
+    var s = SC[k]; if (!s || D.status === "Not enough data") return;
+    var c = el("section", { "class": "card sc" + (drives(k) ? " drives" : "") });
+    if (drives(k)) c.style.borderColor = "var(--" + k + ")";
+    var h = el("div", { "class": "head" });
+    var ic = el("div", { "class": "ico", style: "background:color-mix(in srgb, var(--" + k + ") 14%, transparent)" });
+    var isv = sv(null, "svg", { viewBox: "0 0 24 24", fill: "none", stroke: "var(--" + k + ")", "stroke-width": 2.2, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    sv(isv, "path", { d: ICON[k] }); ic.appendChild(isv); h.appendChild(ic);
+    h.appendChild(el("span", { "class": "name" }, k.charAt(0).toUpperCase() + k.slice(1) + " sales"));
+    var tag = el("span", { "class": "tag", style: "color:var(--" + k + ");background:color-mix(in srgb, var(--" + k + ") 13%, transparent)" },
+      drives(k) ? "Drives the status" : (s.post_peak_rate != null ? s.post_peak_rate + "/day" : ""));
+    h.appendChild(tag); c.appendChild(h);
+    var big, meta = [];
+    if (s.full_buffer_deadline) {
+      big = fd(s.full_buffer_deadline);
+      meta.push("Full-buffer deadline" + (s.days_left != null ? " · " + days(s.days_left) : ""));
+      if (s.first_shortage_date || s.stockout_date) meta.push("First short day without a new lot: " + fd(s.first_shortage_date || s.stockout_date));
+    } else if (s.stockout_date) {
+      big = drives(k) ? "Past deadline" : "Past its full-buffer date";
+      meta.push(s.order_now_arrival ? "Ordering now arrives " + fd(s.order_now_arrival) : "No order date keeps the buffer");
+    } else {
+      big = s.unavoidable_shortage_days ? "Enough stock after the gap" : (s.note || "No stock-out found");
+      meta.push(s.unavoidable_shortage_days ? "No stock-out after the first short days, until " + fd(S.next_peak_start) : "No stock-out before " + fd(S.next_peak_start));
+    }
+    if (s.unavoidable_shortage_days) meta.push(days(s.unavoidable_shortage_days) + " short that no order can prevent");
+    if (drives(k) && s.post_peak_rate != null) meta.push(s.post_peak_rate + "/day after peak");
+    c.appendChild(el("div", { "class": "val" + (big.length > 12 ? " text" : "") }, big));
+    c.appendChild(el("div", { "class": "meta" }, meta.join(" · ")));
+    if (n) { var sp = el("div", { "class": "spark" }); c.appendChild(sp);
+      drawChart(sp, { id: "s" + k, W: 300, H: 64, L: 0, R: 0, T: 6, B: 2, keys: [k], area: true, stretch: true, width: function () { return 2; } }); }
+    if (n) {
+      cardEls[k] = c; c.setAttribute("aria-pressed", "false");
+      pickable(c, function () { showScenario(k); view.focus = view.focus === k ? null : k; renderMain(); });
+    }
+    $("scenCards").appendChild(c);
+  });
+
+  // ---------- key dates ----------
+  var tl = [[D.as_of, "Today", "Data as of this date", "var(--muted)"]];
+  if (D.driving_deadline) tl.push([D.driving_deadline, "Decide the next lot", cap(D.status_scenario) + " scenario · " + days(D.days_left), "var(--" + main + ")", true]);
+  (D.scenarios || []).forEach(function (s) {
+    if (s.full_buffer_deadline && !drives(s.name) && s.full_buffer_deadline !== D.driving_deadline)
+      tl.push([s.full_buffer_deadline, cap(s.name) + " scenario: full-buffer deadline", "does not drive the status" + (s.days_left != null ? " · " + days(s.days_left) : ""), "var(--" + s.name + ")"]);
+  });
+  if (S.tet_last_order_date && S.tet_full_capacity_date && (!S.next_peak_start || pd(S.tet_last_order_date) < pd(S.next_peak_start))) {
+    var tetPassed = pd(S.tet_last_order_date) < pd(D.as_of);
+    tl.push([S.tet_last_order_date, "Factory's last order date before Tết" + (tetPassed ? " (passed)" : ""), "Later orders wait for the restart", "var(--tetInk)"]);
+    tl.push([S.tet_full_capacity_date, "Factory back to full capacity", sameArrival ? "Latest order with the same arrival as ordering now; waiting until then costs nothing" : "After Tết", "var(--tetInk)"]);
+  }
+  if (D.driving_deadline && sm.if_missed_arrival) tl.push([sm.if_missed_arrival, "If the date is missed: earliest arrival",
+    sm.if_missed_shortage_days ? days(sm.if_missed_shortage_days) + " short" : "no shortage", "var(--" + main + ")"]);
+  if (!D.driving_deadline && sm.order_now_arrival) tl.push([sm.order_now_arrival, "Ordering now: earliest arrival",
+    sm.unavoidable_shortage_days ? "after " + days(sm.unavoidable_shortage_days) + " short that no order can prevent" : main + " scenario", "var(--" + main + ")", true]);
+  (D.scenarios || []).forEach(function (s) {
+    if (s.name !== main && s.unavoidable_shortage_days && s.first_shortage_date &&
+        !(s.first_shortage_date === sm.first_shortage_date && s.unavoidable_shortage_days === sm.unavoidable_shortage_days))
+      tl.push([s.first_shortage_date, cap(s.name) + " scenario: shortage that no order can prevent starts", "does not drive the status · " + days(s.unavoidable_shortage_days) + ", until " + fd(addDays(s.first_shortage_date, s.unavoidable_shortage_days - 1)), "var(--" + s.name + ")"]);
+  });
+  if (sm.unavoidable_shortage_days && sm.first_shortage_date)
+    tl.push([sm.first_shortage_date, "Shortage that no order can prevent starts", cap(main) + " scenario · " + days(sm.unavoidable_shortage_days) + ", until " + fd(addDays(sm.first_shortage_date, sm.unavoidable_shortage_days - 1)), "var(--" + main + ")"]);
+  else if (sm.first_shortage_date || sm.stockout_date)
+    tl.push([sm.first_shortage_date || sm.stockout_date, "First short day without a new lot", cap(main) + " scenario", "var(--" + main + ")"]);
+  (D.inbound || []).forEach(function (x) {
+    if (!x.arrival || (S.next_peak_start && pd(x.arrival) >= pd(S.next_peak_start))) return;
+    if (pd(x.arrival) < pd(D.as_of) || x.flag === "overdue")
+      tl.push([D.as_of, "Overdue lot: " + num(x.qty) + " units (due " + fd(x.arrival) + ")", "Counted in stock from today; please confirm it was received", "var(--slow)"]);
+    else tl.push([x.arrival, "Inbound lot: " + num(x.qty) + " units", flagText(x.flag), "var(--slow)"]);
+  });
+  if (S.next_peak_start) tl.push([S.next_peak_start, "Next peak season starts", "Its lot needs its own plan", "var(--muted)"]);
+  tl.sort(function (a, b) { return pd(a[0]) - pd(b[0]); });
+  tl.forEach(function (t) {
+    var li = el("li", t[4] ? { "class": "key" } : {});
+    li.appendChild(el("span", { "class": "dot", style: "background:" + t[3] }));
+    var w = el("div", { "class": "what" }, t[1]); w.appendChild(el("small", {}, t[2])); li.appendChild(w);
+    li.appendChild(el("span", { "class": "when" }, fd(t[0])));
+    if (n && dd(sr.start, t[0]) >= 0 && dd(sr.start, t[0]) <= n - 1) {
+      tlEls.push({ li: li, date: t[0], label: t[1] });
+      pickable(li, function () {
+        view.mark = view.mark && view.mark.date === t[0] && view.mark.label === t[1] ? null : { date: t[0], label: t[1] };
+        renderMain();
+      });
+    }
+    $("timeline").appendChild(li);
+  });
+
+  $("report").textContent = "";
+  String(v(D.report_line)).split("**").forEach(function (part, i) {
+    $("report").appendChild(i % 2 ? el("b", {}, part) : document.createTextNode(part));
+  });
+
+  // ---------- scenario table ----------
+  var head = ["Scenario", "First short day (no new lot)", "Full-buffer deadline", "Days left", "Smaller-buffer deadline", "If missed", "Unavoidable shortage", "Units needed"];
+  var tb = $("scen"), tr = el("tr");
+  head.forEach(function (h) { tr.appendChild(el("th", {}, h)); }); tb.appendChild(tr);
+  if (D.status === "Not enough data") {
+    var nr = el("tr"), nc = el("td", { colspan: head.length }, "No result: missing " + ((D.missing || []).join(", ") || "data") + ".");
+    nr.appendChild(nc); tb.appendChild(nr);
+  }
+  (D.status === "Not enough data" ? [] : D.scenarios || []).forEach(function (s) {
+    var r = el("tr", drives(s.name) ? { "class": "drives" } : {}); rowEls[s.name] = r;
+    var missed = "—";
+    if (!s.full_buffer_deadline && s.order_now_arrival) missed = "no order date keeps the buffer; ordering now arrives " + fd(s.order_now_arrival);
+    if (s.full_buffer_deadline && s.if_missed_arrival) {
+      missed = "arrives " + fd(s.if_missed_arrival);
+      if (s.if_missed_shortage_days) missed += ", " + days(s.if_missed_shortage_days) + " short";
+      else if (s.stockout_date) missed += ", no shortage (" + days(dd(s.if_missed_arrival, s.stockout_date)) + " buffer)";
+      else missed += ", no shortage";
+    }
+    var small = !s.smaller_buffer_deadline ? "—"
+      : !s.full_buffer_deadline && s.unavoidable_shortage_days ? fd(s.smaller_buffer_deadline) + " (same arrival as ordering now; " + days(s.unavoidable_shortage_days) + " short still)"
+      : fd(s.smaller_buffer_deadline) + (s.smaller_buffer_days != null ? " (" + days(s.smaller_buffer_days) + " buffer)" : "");
+    var first = el("td"); first.appendChild(el("span", { "class": "sw", style: "background:var(--" + s.name + ")" }));
+    first.appendChild(document.createTextNode(s.name + (s.post_peak_rate != null ? " · " + s.post_peak_rate + "/day" : "") + (s.note ? " · " + s.note : "")));
+    r.appendChild(first);
+    [s.first_shortage_date || s.stockout_date ? fd(s.first_shortage_date || s.stockout_date) : "none before next peak",
+     s.full_buffer_deadline ? fd(s.full_buffer_deadline) : "—",
+     v(s.days_left), small, missed,
+     s.unavoidable_shortage_days ? days(s.unavoidable_shortage_days) : "0",
+     allZero ? "no lot needed" : s.units_needed === 0 ? "no lot needed in this scenario" : s.units_needed != null ? num(s.units_needed) + (S.moq ? " (MOQ " + num(S.moq) + ")" : "") : "—"
+    ].forEach(function (c) { r.appendChild(el("td", {}, c)); });
+    tb.appendChild(r);
+  });
+
+  // ---------- inbound, data age and notes ----------
+  var ib = D.inbound || [];
+  if (!ib.length) $("inbound").appendChild(el("p", { "class": "muted" }, "None."));
+  else {
+    var ul = el("ul", { "class": "plain" });
+    ib.forEach(function (x) {
+      var txt = !x.arrival ? num(x.qty) + " units, no arrival date (left out)"
+        : x.flag === "overdue" ? num(x.qty) + " units, was due " + fd(x.arrival) + " (overdue, counted in stock)"
+        : num(x.qty) + " units, arriving " + fd(x.arrival) + " (" + flagText(x.flag) + ")";
+      ul.appendChild(el("li", {}, txt));
+    });
+    $("inbound").appendChild(ul);
+  }
+  var ul2 = el("ul", { "class": "plain" });
+  (D.data_age || []).forEach(function (x) {
+    ul2.appendChild(el("li", {}, x.input + ": " + (x.updated ? "updated " + fd(x.updated) + " (" + (x.days === 0 ? "today" : x.days != null ? days(x.days) + " ago" : "age unknown") + (x.stale ? ", stale" : "") + ")" : "update date not stated")));
+  });
+  (D.defects || []).forEach(function (x) {
+    ul2.appendChild(el("li", {}, "Defect check, " + x.measure + ": " + x.cases + " cases in " + num(x.units) + " units = " + x.rate_pct + "% (threshold " + x.threshold_pct + "%)" + (x.fired ? ", worth reviewing before the next lot" : ", below threshold")));
+  });
+  (D.notes || []).forEach(function (t) { ul2.appendChild(el("li", {}, t)); });
+  if (!ul2.children.length) $("age").appendChild(el("p", { "class": "muted" }, "—")); else $("age").appendChild(ul2);
+})();
+</script>
+
+<script>
+// Ask Claude: shown only where the page runs as a Claude artifact that may ask Claude.
+// Claude explains the numbers above; it never works out new dates (the skill is the only place that calculates).
+(function () {
+  var D = JSON.parse(document.getElementById("nls-data").textContent || "null");
+  if (!D || !window.claude || typeof window.claude.use !== "function") return;
+  var $ = function (id) { return document.getElementById(id); };
+  function pd(s) { if (!s) return null; var p = String(s).split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+  function fd(s) { var d = pd(s); return d ? d.getUTCDate() + "/" + (d.getUTCMonth() + 1) + "/" + d.getUTCFullYear() : null; }
+  function addDays(s, k) { var d = pd(s); d.setUTCDate(d.getUTCDate() + k); return d.toISOString().slice(0, 10); }
+
+  // Vietnamese report line → Vietnamese suggested questions ("Tết" appears in English lines too, so it is ignored).
+  var vi = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test((D.report_line || "").replace(/Tết/g, ""));
+  var CHIPS = vi
+    ? ["Vì sao ngày này quyết định trạng thái?", "Nếu lỡ ngày đó thì sao?", "Nên kiểm tra gì trước khi quyết?"]
+    : ["Why does this date drive the status?", "What happens if we miss it?", "What should I check before deciding?"];
+
+  // The page's data for Claude: everything except the daily series, plus a weekly sample of it.
+  var data = JSON.parse(JSON.stringify(D)); delete data.series;
+  var weekly = [];
+  if (D.series && D.series.start && D.series.stock) {
+    var len = Math.max.apply(null, ["slow", "mid", "fast"].map(function (k) { return (D.series.stock[k] || []).length; }));
+    for (var i = 0; i < len; i += 7) {
+      var w = { date: fd(addDays(D.series.start, i)) };
+      ["slow", "mid", "fast"].forEach(function (k) {
+        var st = (D.series.stock[k] || [])[i]; if (st == null) return;
+        w[k] = { stock: Math.round(st), waiting: Math.round(((D.series.queue || {})[k] || [])[i] || 0) };
+      });
+      weekly.push(w);
+    }
+  }
+  var RULES = [
+    "You are answering questions about one weekly \"next-lot check\". A planning skill calculated every number below; the page shows them. Your job is to explain them, not to recalculate.",
+    "",
+    "How you answer:",
+    "- Explain only from the data and the method below. Write dates as d/m/yyyy, as the page does (the data stores them as yyyy-mm-dd).",
+    "- Never work out a new date, deadline, shortage count or quantity, and never redo the projection. If the viewer asks \"what if\" (a different sales rate, lead time, buffer, order date or lot size), say that this needs a new run of the skill with that number changed in config.md, and name the setting. You may say in words which way such a change pushes things (for example, faster sales bring the stock-out earlier), without a number.",
+    "- If something is not in the data, say so plainly. Do not guess.",
+    "- The numbers are illustrative, based on the data entered. The agent prepares the decision; a person decides. Do not tell the viewer to place an order, how many units to buy, or which supplier to use.",
+    "- Answer in the language of the viewer's latest question. Plain text: short paragraphs or a few lines starting with \"- \". No tables, no headings. Under 180 words unless asked for more.",
+    "",
+    "Method (the skill's rules, in short):",
+    "1. Stock is projected day by day with no new lot: inbound lots first, then the waiting queue (accepted orders not yet shipped), then new orders. During the peak it uses the recent average; after the peak there are three scenarios: slow / mid / fast = the post-peak rate minus band_pct / as set / plus band_pct.",
+    "2. arrival(X) = order day + factory_days + transit_days. An order placed after the factory's last order date before Tết (Lunar New Year) and before it is back to full capacity counts from the full-capacity date.",
+    "3. Stock-out date = the first day orders go unfilled on or after arrival(today). Full-buffer deadline = the latest order day whose arrival still leaves buffer_days before the stock-out. Smaller-buffer deadline = the latest order day that still arrives by the stock-out. If the full-buffer deadline is missed, the lot arrives on arrival(the day after it); shortage days = that arrival minus the stock-out date.",
+    "4. Unavoidable shortage = shortage days before arrival(today); no new order can prevent them.",
+    "5. The mid scenario drives the status, unless the fast scenario's deadline is the Tết cut-off and earlier; then that cut-off drives it (status_scenario says which one does).",
+    "6. Status by days left to that deadline: 43+ \"Time left\", 15-42 \"Approaching decision window\", 0-14 \"In decision window\"; also \"Past deadline\" (no order date keeps the buffer), \"Enough stock until next peak\", \"Not enough data\". A status becomes less urgent only once the count is more than 3 days past the boundary.",
+    "7. The skill covers the next lot up to next_peak_start; the lot for the next peak season needs its own plan.",
+    "",
+    "Data (JSON, from this week's run):",
+    JSON.stringify(data),
+    "",
+    "Projected stock and waiting orders with no new lot, every 7th day (sampled from the daily figures):",
+    JSON.stringify(weekly)
+  ].join("\n");
+
+  var sample = null, turns = [], ctl = null, busy = false;
+  var chips = [];
+  CHIPS.forEach(function (q) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = q;
+    b.addEventListener("click", function () { ask(q); });
+    $("askChips").appendChild(b); chips.push(b);
+  });
+  if (vi) $("askBox").placeholder = "Hỏi về các con số tuần này";
+
+  function setBusy(on) {
+    busy = on; $("askBtn").disabled = on; $("stopBtn").hidden = !on;
+    chips.forEach(function (b) { b.disabled = on; });
+  }
+  function bubble(cls, text) {
+    var d = document.createElement("div"); d.className = "msg " + cls; fill(d, text);
+    $("askLog").appendChild(d); return d;
+  }
+  function fill(node, text) {
+    node.textContent = "";
+    String(text).split("**").forEach(function (part, i) {
+      if (i % 2) { var b = document.createElement("b"); b.textContent = part; node.appendChild(b); }
+      else node.appendChild(document.createTextNode(part));
+    });
+  }
+  function closeFeature(msg) {
+    $("askForm").hidden = true; $("askChips").hidden = true; $("askNote").textContent = msg;
+  }
+  var COPY = {
+    not_granted: "Claude was not allowed for this page, so questions are turned off for now.",
+    sampling_disabled: "Claude is not available for this account.",
+    not_declared: "This page is not set up to ask Claude.",
+    capability_disabled: "Claude is not available in this view.",
+    capability_removed: "Claude is not available in this view.",
+    rate_limited: "Too many questions just now, or your Claude usage limit was reached. Try again a little later.",
+    session_expired: "Please sign in to Claude again, then ask.",
+    refused: "Claude did not answer that question. Try asking it another way.",
+    empty_completion: "Claude gave no answer. Try a simpler question.",
+    prompt_too_large: "The conversation is too long. Reload the page to start again."
+  };
+  var HIDE = { not_granted: 1, sampling_disabled: 1, not_declared: 1, capability_disabled: 1, capability_removed: 1 };
+
+  function ask(q) {
+    q = String(q || "").trim();
+    if (!q || busy || !sample) return;
+    $("askBox").value = ""; $("askNote").textContent = "";
+    bubble("q", q);
+    var a = bubble("a wait", "Thinking...");
+    turns.push({ role: "user", content: q });
+    while (turns.length > 8) turns.shift();
+    if (turns[0].role !== "user") turns.shift();
+    ctl = new AbortController(); setBusy(true);
+    sample([{ role: "user", content: RULES }].concat(turns), {
+      cache: false, signal: ctl.signal,
+      onText: function (u) { a.className = "msg a"; fill(a, u.text); }
+    }).then(function (res) {
+      turns.push({ role: "assistant", content: res.text });
+      if (res.truncated) $("askNote").textContent = "The answer was cut short. Ask for less at a time.";
+    }).catch(function (e) {
+      var code = e && e.code;
+      turns.pop();
+      if (e && e.text) { a.className = "msg a"; fill(a, e.text + (code === "cancelled" ? "" : "\n[interrupted]")); }
+      else a.remove();
+      if (code === "cancelled") return;
+      if (HIDE[code]) { closeFeature(COPY[code]); return; }
+      $("askNote").textContent = COPY[code] || "Something went wrong reaching Claude. Try again.";
+    }).then(function () { setBusy(false); ctl = null; });
+  }
+  $("askForm").addEventListener("submit", function (e) { e.preventDefault(); ask($("askBox").value); });
+  $("askBox").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask($("askBox").value); }
+  });
+  $("stopBtn").addEventListener("click", function () { if (ctl) ctl.abort(); });
+
+  window.claude.use("sample").then(function (s) {
+    if (!s) return;
+    sample = s; $("askRow").hidden = false;
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>

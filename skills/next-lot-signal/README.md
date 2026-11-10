@@ -1,0 +1,9 @@
+# next-lot-signal
+
+This is a small Claude skill. Run it once a week, by hand or on a schedule. It gives a short report line for the morning report: the latest date to decide the next production lot while keeping a buffer, including the factory cut-off before Lunar New Year (Tết / CNY). It also saves a one-page dashboard (status, a stock chart for three sales scenarios, and the deadlines) next to your data. It drafts a short note to the CEO only the first time something needs attention in a lot cycle: the decision window opens, the deadline passes, a stock-out can no longer be avoided, or the defect signal fires.
+
+- **What is in it:** instructions, sample data and one dashboard template. The template is a single HTML page with a small display script and no network access. It runs in your browser, or as a private artifact in Claude if you choose that when the agent asks. As an artifact it also has a box where you can ask Claude about the numbers; Claude explains them and does not calculate new dates. The skill ships no other code.
+- **Time:** about 2 minutes of your time to try it on the sample, plus about 3–5 minutes while the agent works and fills the dashboard. About 15 minutes to read the full rules.
+- **Try it:** install it (the install command in the repo README, or copy this folder to `.claude/skills/next-lot-signal/`), start a new session, and follow "Try it in 2 minutes" in `SKILL.md`. The sample has its own `decisions.md`, so a try leaves the real one untouched.
+- **Before real use:** put your store's order and inventory exports in a folder and ask Claude to run the skill on it; it creates `config.md` and `decisions.md` there and asks for the settings it needs. Or copy both templates and fill them in by hand. Both ship empty, and no company figures are pre-filled.
+- **Limit:** it covers the next lot until the next peak season starts. The peak-season lot itself needs its own plan.

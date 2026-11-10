@@ -1,0 +1,14 @@
+{
+  "name": "next-lot-signal",
+  "version": "1.2.0",
+  "description": "Weekly check for a hardware founder: the latest date to decide the next production lot, including the factory cut-off before Lunar New Year (Tết / CNY), with a one-page dashboard.",
+  "author": {
+    "name": "Nam Anh"
+  },
+  "repository": "https://github.com/Namanhtranduc/next-lot-signal",
+  "license": "MIT",
+  "keywords": ["inventory", "reorder", "production", "lunar-new-year", "shopify", "hardware"],
+  "skills": [
+    "./skills/"
+  ]
+}
